@@ -52,9 +52,14 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', req.url))
   }
 
+  // Redirect authenticated users from homepage to dashboard
+  if (req.nextUrl.pathname === '/' && session) {
+    return NextResponse.redirect(new URL('/dashboard', req.url))
+  }
+
   return res
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/login']
+  matcher: ['/dashboard/:path*', '/login', '/']
 }
