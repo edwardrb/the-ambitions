@@ -5,7 +5,7 @@ import type { NextRequest } from 'next/server'
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
   
-  // Create a Supabase client for middleware
+  // Create a Supabase client for middleware with proper session handling
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -28,6 +28,11 @@ export async function middleware(req: NextRequest) {
   const {
     data: { session },
   } = await supabase.auth.getSession()
+
+  // IMPORTANT: This refreshes the session if it's expired
+  if (!session) {
+    await supabase.auth.refreshSession()
+  }
 
   // Protected routes
   const protectedRoutes = ['/dashboard']

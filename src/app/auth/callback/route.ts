@@ -16,17 +16,21 @@ export async function GET(request: NextRequest) {
 
     if (!error) {
       // Successfully exchanged code for session
-      const forwardedHost = request.headers.get('x-forwarded-host')
-      const isLocalEnv = process.env.NODE_ENV === 'development'
+      // Create a response with cookies to ensure session is properly set
+      const response = NextResponse.redirect(`${origin}${next}`)
       
-      if (isLocalEnv) {
-        // we can be sure that there is no forwardedHost
-        return NextResponse.redirect(`${origin}${next}`)
-      } else if (forwardedHost) {
-        return NextResponse.redirect(`https://${forwardedHost}${next}`)
-      } else {
-        return NextResponse.redirect(`${origin}${next}`)
+      // Set secure cookies for the session
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        response.cookies.set('supabase.auth.token', session.access_token, {
+          path: '/',
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 7, // 1 week
+        })
       }
+      
+      return response
     }
   }
 

@@ -49,6 +49,8 @@ function AuthConfirmLogic() {
         } else {
           setStatus('success')
           setMessage('Email successfully confirmed!')
+          // Force Next.js to recognize the new login cookie
+          await router.refresh()
           setTimeout(() => {
             router.push('/verify-success')
           }, 2000)
