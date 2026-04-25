@@ -7,12 +7,111 @@ import { getCurrentUser, signOut } from '@/utils/supabase'
 import DashboardSidebar from '@/components/DashboardSidebar'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import AnimateOnScroll from "@/components/AnimateOnScroll"
+import { 
+  Zap, 
+  Globe, 
+  TrendingUp, 
+  AlertTriangle, 
+  Target, 
+  Activity,
+  Eye,
+  ChevronRight
+} from "lucide-react"
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [agentActivities, setAgentActivities] = useState([
+    { name: 'Signal Scanner', status: 'active', activity: 'Analyzing market trends...' },
+    { name: 'Pattern Matcher', status: 'active', activity: 'Scraping LinkedIn News...' },
+    { name: 'Data Analyzer', status: 'processing', activity: 'Optimizing outreach strategy...' }
+  ])
+  const [signals, setSignals] = useState([
+    {
+      id: 1,
+      icon: Zap,
+      title: 'Series B Funding Alert',
+      timestamp: '2m ago',
+      confidence: 92,
+      type: 'funding',
+      description: 'AI startup in fintech sector secures $50M Series B funding led by major VC firm.',
+      details: 'Company has shown 300% growth in user base over past 6 months with strong revenue metrics.'
+    },
+    {
+      id: 2,
+      icon: Globe,
+      title: 'Global Market Expansion',
+      timestamp: '5m ago',
+      confidence: 87,
+      type: 'expansion',
+      description: 'Tech giant announces entry into 3 new markets in Southeast Asia.',
+      details: 'Strategic move targets emerging markets with high growth potential and digital adoption rates.'
+    },
+    {
+      id: 3,
+      icon: TrendingUp,
+      title: 'Stock Price Surge',
+      timestamp: '8m ago',
+      confidence: 95,
+      type: 'market',
+      description: 'Biotech company stock jumps 45% after positive clinical trial results.',
+      details: 'Phase 3 trials show 85% success rate, significantly exceeding market expectations.'
+    },
+    {
+      id: 4,
+      icon: AlertTriangle,
+      title: 'Regulatory Warning',
+      timestamp: '12m ago',
+      confidence: 78,
+      type: 'regulatory',
+      description: 'Social media platform faces increased regulatory scrutiny in EU.',
+      details: 'European Commission launches investigation into data privacy practices and market dominance.'
+    },
+    {
+      id: 5,
+      icon: Target,
+      title: 'Acquisition Target',
+      timestamp: '15m ago',
+      confidence: 83,
+      type: 'acquisition',
+      description: 'E-commerce platform identified as potential acquisition target.',
+      details: 'Multiple strategic buyers showing interest in company\'s proprietary technology and customer base.'
+    }
+  ])
+  const [selectedSignal, setSelectedSignal] = useState<any>(null)
+  const [isAgentActive, setIsAgentActive] = useState(false)
   const router = useRouter()
+
+  // Rotate agent activities every 3 seconds
+  useEffect(() => {
+    const activities = [
+      'Analyzing market trends...',
+      'Scraping LinkedIn News...',
+      'Optimizing outreach strategy...',
+      'Processing sentiment analysis...',
+      'Scanning competitor data...',
+      'Generating predictive models...',
+      'Monitoring social signals...',
+      'Analyzing user behavior patterns...',
+      'Compiling market intelligence...',
+      'Cross-referencing data sources...'
+    ]
+
+    const interval = setInterval(() => {
+      setAgentActivities(prev => prev.map(agent => {
+        if (agent.status === 'active' || agent.status === 'processing') {
+          const newActivity = activities[Math.floor(Math.random() * activities.length)]
+          return { ...agent, activity: newActivity }
+        }
+        return agent
+      }))
+    }, 3000)
+
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     checkUser()
@@ -89,130 +188,262 @@ export default function Dashboard() {
           </div>
         </nav>
 
-        {/* Main Content Area */}
+        {/* Main Content Area - 4-Column Bento Grid */}
         <main className="pt-24 px-8 pb-8">
-          {/* Stats Cards */}
-          <AnimateOnScroll delay={0.2}>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 h-full">
+            
+            {/* Left Column - Total Signals Scanned */}
+            <AnimateOnScroll delay={0.1}>
               <Card className="backdrop-blur-xl bg-white/5 border-white/10 rounded-2xl overflow-hidden group hover:bg-white/10 transition-all duration-500">
                 <CardContent className="p-6">
-                  <div className="w-12 h-12 bg-gradient-to-r from-[#1a5ee9] to-[#3d8bfd] rounded-xl mb-4 shadow-lg shadow-[#1a5ee9]/25"></div>
-                  <h3 className="text-xl font-semibold text-white mb-3">Active Projects</h3>
-                  <p className="text-3xl font-bold text-white mb-2">12</p>
-                  <p className="text-gray-400 text-sm">3 completed this month</p>
-                </CardContent>
-              </Card>
-
-              <Card className="backdrop-blur-xl bg-white/5 border-white/10 rounded-2xl overflow-hidden group hover:bg-white/10 transition-all duration-500">
-                <CardContent className="p-6">
-                  <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl mb-4 shadow-lg shadow-purple-500/25"></div>
-                  <h3 className="text-xl font-semibold text-white mb-3">Team Members</h3>
-                  <p className="text-3xl font-bold text-white mb-2">8</p>
-                  <p className="text-gray-400 text-sm">2 online now</p>
-                </CardContent>
-              </Card>
-
-              <Card className="backdrop-blur-xl bg-white/5 border-white/10 rounded-2xl overflow-hidden group hover:bg-white/10 transition-all duration-500">
-                <CardContent className="p-6">
-                  <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl mb-4 shadow-lg shadow-green-500/25"></div>
-                  <h3 className="text-xl font-semibold text-white mb-3">Tasks Completed</h3>
-                  <p className="text-3xl font-bold text-white mb-2">47</p>
-                  <p className="text-gray-400 text-sm">89% completion rate</p>
-                </CardContent>
-              </Card>
-            </div>
-          </AnimateOnScroll>
-
-          {/* Recent Activity */}
-          <AnimateOnScroll delay={0.4}>
-            <Card className="backdrop-blur-xl bg-white/5 border-white/10 rounded-2xl overflow-hidden">
-              <CardContent className="p-8">
-                <h2 className="text-2xl font-semibold text-white mb-6">Recent Activity</h2>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-4 p-4 bg-white/5 rounded-xl">
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <div className="flex-1">
-                      <p className="text-white font-medium">Project Alpha completed</p>
-                      <p className="text-gray-400 text-sm">2 hours ago</p>
-                    </div>
+                  <div className="w-12 h-12 bg-gradient-to-r from-[#1a5ee9] to-[#3d8bfd] rounded-xl mb-4 shadow-lg shadow-[#1a5ee9]/25 flex items-center justify-center">
+                    <span className="text-white text-xl font-bold">📡</span>
                   </div>
-                  <div className="flex items-center space-x-4 p-4 bg-white/5 rounded-xl">
-                    <div className="w-3 h-3 bg-[#1a5ee9] rounded-full"></div>
-                    <div className="flex-1">
-                      <p className="text-white font-medium">New team member joined</p>
-                      <p className="text-gray-400 text-sm">5 hours ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-4 p-4 bg-white/5 rounded-xl">
-                    <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                    <div className="flex-1">
-                      <p className="text-white font-medium">Milestone achieved: 1000 users</p>
-                      <p className="text-gray-400 text-sm">1 day ago</p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </AnimateOnScroll>
-
-          {/* Quick Actions & Performance */}
-          <AnimateOnScroll delay={0.6}>
-            <div className="mt-8 grid md:grid-cols-2 gap-6">
-              <Card className="backdrop-blur-xl bg-white/5 border-white/10 rounded-2xl overflow-hidden">
-                <CardContent className="p-8">
-                  <h3 className="text-xl font-semibold text-white mb-6">Quick Actions</h3>
-                  <div className="space-y-3">
-                    <Button className="w-full h-12 bg-white/10 border-white/20 text-white hover:bg-white/20 rounded-xl backdrop-blur-sm text-left justify-start">
-                      Create New Project
-                    </Button>
-                    <Button className="w-full h-12 bg-white/10 border-white/20 text-white hover:bg-white/20 rounded-xl backdrop-blur-sm text-left justify-start">
-                      Invite Team Member
-                    </Button>
-                    <Button className="w-full h-12 bg-white/10 border-white/20 text-white hover:bg-white/20 rounded-xl backdrop-blur-sm text-left justify-start">
-                      View Analytics
-                    </Button>
+                  <h3 className="text-lg font-semibold text-white mb-2">Total Signals Scanned</h3>
+                  <p className="text-4xl font-bold text-white mb-2">2,847</p>
+                  <p className="text-gray-400 text-sm">+127 in last hour</p>
+                  <div className="mt-4 h-1 bg-white/20 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-[#1a5ee9] to-[#3d8bfd] rounded-full animate-pulse" style={{ width: '75%' }}></div>
                   </div>
                 </CardContent>
               </Card>
+            </AnimateOnScroll>
 
-              <Card className="backdrop-blur-xl bg-white/5 border-white/10 rounded-2xl overflow-hidden">
-                <CardContent className="p-8">
-                  <h3 className="text-xl font-semibold text-white mb-6">Performance</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between text-white mb-2">
-                        <span className="text-sm">Productivity</span>
-                        <span className="text-sm">87%</span>
-                      </div>
-                      <div className="w-full bg-white/20 rounded-full h-2">
-                        <div className="bg-gradient-to-r from-[#1a5ee9] to-[#3d8bfd] h-2 rounded-full" style={{ width: '87%' }}></div>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between text-white mb-2">
-                        <span className="text-sm">Collaboration</span>
-                        <span className="text-sm">92%</span>
-                      </div>
-                      <div className="w-full bg-white/20 rounded-full h-2">
-                        <div className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full" style={{ width: '92%' }}></div>
+            {/* Center Column - Live Intelligence Feed */}
+            <AnimateOnScroll delay={0.2}>
+              <div className="xl:col-span-2 space-y-6">
+                <Card className="backdrop-blur-xl bg-white/5 border-white/10 rounded-2xl overflow-hidden group hover:bg-white/10 transition-all duration-500 h-full">
+                  <CardContent className="p-6 h-full flex flex-col">
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-2xl font-semibold text-white">Recent Signals</h2>
+                      <div className="flex items-center space-x-2">
+                        <div className={`w-2 h-2 rounded-full ${isAgentActive ? 'bg-green-500 animate-pulse' : 'bg-gray-500'}`}></div>
+                        <span className={`text-sm ${isAgentActive ? 'text-green-400' : 'text-gray-400'}`}>
+                          {isAgentActive ? 'LIVE' : 'STANDBY'}
+                        </span>
                       </div>
                     </div>
-                    <div>
-                      <div className="flex justify-between text-white mb-2">
-                        <span className="text-sm">Growth</span>
-                        <span className="text-sm">78%</span>
+                    
+                    <div className="flex-1 space-y-3 overflow-y-auto max-h-96">
+                      {isAgentActive ? (
+                        signals.map((signal) => {
+                          const Icon = signal.icon
+                          return (
+                            <div key={signal.id} className="p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all duration-300">
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-start space-x-3 flex-1">
+                                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                    signal.confidence >= 90 ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
+                                    signal.confidence >= 80 ? 'bg-gradient-to-r from-[#1a5ee9] to-[#3d8bfd]' :
+                                    signal.confidence >= 70 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
+                                    'bg-gradient-to-r from-red-500 to-pink-500'
+                                  }`}>
+                                    <Icon className="w-5 h-5 text-white" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <h3 className="text-white font-medium text-sm">{signal.title}</h3>
+                                    <p className="text-gray-400 text-xs mt-1">{signal.description}</p>
+                                    <div className="flex items-center space-x-3 mt-2">
+                                      <span className="text-gray-500 text-xs">{signal.timestamp}</span>
+                                      <Badge className={`text-xs ${
+                                        signal.confidence >= 90 ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                                        signal.confidence >= 80 ? 'bg-[#1a5ee9]/20 text-[#1a5ee9] border-[#1a5ee9]/30' :
+                                        signal.confidence >= 70 ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
+                                        'bg-red-500/20 text-red-400 border-red-500/30'
+                                      }`}>
+                                        {signal.confidence}%
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => setSelectedSignal(signal)}
+                                  className="text-gray-400 hover:text-white hover:bg-white/10 p-2"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          )
+                        })
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-12 text-center">
+                          <Activity className="w-12 h-12 text-gray-600 mb-4" />
+                          <h3 className="text-gray-400 text-lg font-medium mb-2">Signal Scanner Standby</h3>
+                          <p className="text-gray-500 text-sm max-w-md">
+                            The intelligence agent is currently in standby mode. Activate the agent to begin scanning and processing signals in real-time.
+                          </p>
+                          <Button 
+                            onClick={() => setIsAgentActive(true)}
+                            className="mt-6 bg-gradient-to-r from-[#1a5ee9] to-[#3d8bfd] hover:from-[#1554d6] hover:to-[#2d7aed] text-white"
+                          >
+                            Activate Agent
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </AnimateOnScroll>
+
+            {/* Right Column - Current Confidence Score & Agent Status */}
+            <AnimateOnScroll delay={0.3}>
+              <div className="space-y-6">
+                {/* Current Confidence Score */}
+                <Card className="backdrop-blur-xl bg-white/5 border-white/10 rounded-2xl overflow-hidden group hover:bg-white/10 transition-all duration-500">
+                  <CardContent className="p-6">
+                    <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl mb-4 shadow-lg shadow-green-500/25 flex items-center justify-center">
+                      <span className="text-white text-xl font-bold">📊</span>
+                    </div>
+                    <h3 className="text-lg font-semibold text-white mb-2">Current Confidence Score</h3>
+                    <p className="text-4xl font-bold text-white mb-2">94.7%</p>
+                    <p className="text-gray-400 text-sm">Above average performance</p>
+                    <div className="mt-4 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">Accuracy</span>
+                        <span className="text-green-400">96%</span>
                       </div>
-                      <div className="w-full bg-white/20 rounded-full h-2">
-                        <div className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full" style={{ width: '78%' }}></div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">Precision</span>
+                        <span className="text-blue-400">92%</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">Recall</span>
+                        <span className="text-purple-400">89%</span>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </AnimateOnScroll>
+                  </CardContent>
+                </Card>
+
+                {/* Agent Status & Quick Actions */}
+                <Card className="backdrop-blur-xl bg-white/5 border-white/10 rounded-2xl overflow-hidden group hover:bg-white/10 transition-all duration-500">
+                  <CardContent className="p-6">
+                    <h3 className="text-lg font-semibold text-white mb-4">Agent Status</h3>
+                    <div className="space-y-3 mb-6">
+                      {agentActivities.map((agent, index) => (
+                        <div key={index} className="p-3 bg-white/5 rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-2">
+                              <div className={`w-2 h-2 rounded-full ${
+                                agent.status === 'active' ? 'bg-green-500 agent-status-dot' : 
+                                agent.status === 'processing' ? 'bg-yellow-500 agent-status-dot' : 
+                                'bg-gray-500'
+                              }`}></div>
+                              <span className="text-white text-sm font-medium">{agent.name}</span>
+                            </div>
+                            <span className={`text-xs ${
+                              agent.status === 'active' ? 'text-green-400' : 
+                              agent.status === 'processing' ? 'text-yellow-400' : 
+                              'text-gray-400'
+                            }`}>
+                              {agent.status === 'active' ? 'Active' : 
+                               agent.status === 'processing' ? 'Processing' : 
+                               'Standby'}
+                            </span>
+                          </div>
+                          {(agent.status === 'active' || agent.status === 'processing') && (
+                            <p className="text-gray-400 text-xs ml-4 italic">
+                              {agent.activity}
+                            </p>
+                          )}
+                          {agent.status === 'standby' && (
+                            <p className="text-gray-500 text-xs ml-4 italic">
+                              Standing by, ready to be activated
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
+                    <div className="space-y-2">
+                      <Button className="w-full h-10 bg-white/10 border-white/20 text-white hover:bg-white/20 rounded-lg backdrop-blur-sm text-sm">
+                        Deploy New Agent
+                      </Button>
+                      <Button className="w-full h-10 bg-white/10 border-white/20 text-white hover:bg-white/20 rounded-lg backdrop-blur-sm text-sm">
+                        Scan Priority Signals
+                      </Button>
+                      <Button className="w-full h-10 bg-gradient-to-r from-[#1a5ee9] to-[#3d8bfd] hover:from-[#1554d6] hover:to-[#2d7aed] text-white rounded-lg text-sm">
+                        Generate Report
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </AnimateOnScroll>
+          </div>
         </main>
       </div>
     </div>
+
+    {/* Signal Details Dialog */}
+    <Dialog open={!!selectedSignal} onOpenChange={() => setSelectedSignal(null)}>
+      <DialogContent className="backdrop-blur-xl bg-white/5 border-white/10 text-white max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold text-white flex items-center space-x-3">
+            {selectedSignal && (
+              <>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                  selectedSignal.confidence >= 90 ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
+                  selectedSignal.confidence >= 80 ? 'bg-gradient-to-r from-[#1a5ee9] to-[#3d8bfd]' :
+                  selectedSignal.confidence >= 70 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
+                  'bg-gradient-to-r from-red-500 to-pink-500'
+                }`}>
+                  <selectedSignal.icon className="w-4 h-4 text-white" />
+                </div>
+                {selectedSignal.title}
+              </>
+            )}
+          </DialogTitle>
+        </DialogHeader>
+        
+        {selectedSignal && (
+          <div className="space-y-4">
+            <div className="flex items-center space-x-3">
+              <span className="text-gray-400 text-sm">{selectedSignal.timestamp}</span>
+              <Badge className={`text-xs ${
+                selectedSignal.confidence >= 90 ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                selectedSignal.confidence >= 80 ? 'bg-[#1a5ee9]/20 text-[#1a5ee9] border-[#1a5ee9]/30' :
+                selectedSignal.confidence >= 70 ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
+                'bg-red-500/20 text-red-400 border-red-500/30'
+              }`}>
+                {selectedSignal.confidence}% Confidence
+              </Badge>
+            </div>
+            
+            <div className="space-y-3">
+              <div>
+                <h4 className="text-sm font-medium text-gray-300 mb-1">Summary</h4>
+                <p className="text-gray-400 text-sm">{selectedSignal.description}</p>
+              </div>
+              
+              <div>
+                <h4 className="text-sm font-medium text-gray-300 mb-1">Analysis</h4>
+                <p className="text-gray-400 text-sm">{selectedSignal.details}</p>
+              </div>
+              
+              <div>
+                <h4 className="text-sm font-medium text-gray-300 mb-1">Signal Type</h4>
+                <Badge variant="outline" className="text-xs border-white/20 text-gray-300">
+                  {selectedSignal.type.charAt(0).toUpperCase() + selectedSignal.type.slice(1)}
+                </Badge>
+              </div>
+            </div>
+            
+            <div className="flex space-x-3 pt-4">
+              <Button className="flex-1 bg-gradient-to-r from-[#1a5ee9] to-[#3d8bfd] hover:from-[#1554d6] hover:to-[#2d7aed] text-white">
+                Take Action
+              </Button>
+              <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                Dismiss
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   )
 }
