@@ -17,7 +17,7 @@ export default function Home() {
       <nav className="fixed top-0 w-full z-50 backdrop-blur-xl bg-black/20 border-b border-white/10">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="text-2xl font-bold text-white">
+            <div className="text-2xl font-semibold text-white font-['Afacad_Flux']">
               The Ambitions
             </div>
             <div className="flex items-center space-x-6">

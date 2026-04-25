@@ -1,8 +1,12 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import './globals.css'
+import { Afacad_Flux } from 'next/font/google'
 
-const inter = Inter({ subsets: ['latin'] })
+const afacadFlux = Afacad_Flux({
+  subsets: ['latin'],
+  weight: '600',
+  variable: '--font-afacad-flux',
+})
 
 export const metadata: Metadata = {
   title: 'The Ambitions',
@@ -18,8 +22,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
+    <html lang="en" className={afacadFlux.variable}>
+      <body className={afacadFlux.className}>{children}</body>
     </html>
   )
 }

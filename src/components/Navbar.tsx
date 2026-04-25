@@ -26,7 +26,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 group">
-            <span className="text-2xl font-bold tracking-tight">
+            <span className="text-2xl font-semibold tracking-tight font-['Afacad_Flux']">
               <span className="bg-gradient-to-r from-white via-white to-gray-400 bg-clip-text text-transparent group-hover:from-white group-hover:via-white group-hover:to-white transition-all duration-300">
                 THE AMBITIONS
               </span>
