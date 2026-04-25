@@ -1,0 +1,4 @@
+{"timestamp":"00:00:01.208","source":"Server","level":"LOG","message":""}
+{"timestamp":"00:00:01.244","source":"Server","level":"ERROR","message":"Error: EPIPE: broken pipe, write"}
+{"timestamp":"00:00:01.252","source":"Server","level":"ERROR","message":"⨯ \"uncaughtException:\" Error: EPIPE: broken pipe, write"}
+{"timestamp":"00:00:01.256","source":"Server","level":"ERROR","message":"⨯ \"uncaughtException: \" Error: EPIPE: broken pipe, write"}
