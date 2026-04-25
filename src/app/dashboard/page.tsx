@@ -377,73 +377,73 @@ export default function Dashboard() {
           </div>
         </main>
       </div>
-    </div>
-
-    {/* Signal Details Dialog */}
-    <Dialog open={!!selectedSignal} onOpenChange={() => setSelectedSignal(null)}>
-      <DialogContent className="backdrop-blur-xl bg-white/5 border-white/10 text-white max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-white flex items-center space-x-3">
-            {selectedSignal && (
-              <>
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                  selectedSignal.confidence >= 90 ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
-                  selectedSignal.confidence >= 80 ? 'bg-gradient-to-r from-[#1a5ee9] to-[#3d8bfd]' :
-                  selectedSignal.confidence >= 70 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
-                  'bg-gradient-to-r from-red-500 to-pink-500'
+      
+      {/* Signal Details Dialog */}
+      <Dialog open={!!selectedSignal} onOpenChange={() => setSelectedSignal(null)}>
+        <DialogContent className="backdrop-blur-xl bg-white/5 border-white/10 text-white max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-white flex items-center space-x-3">
+              {selectedSignal && (
+                <>
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    selectedSignal.confidence >= 90 ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
+                    selectedSignal.confidence >= 80 ? 'bg-gradient-to-r from-[#1a5ee9] to-[#3d8bfd]' :
+                    selectedSignal.confidence >= 70 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
+                    'bg-gradient-to-r from-red-500 to-pink-500'
+                  }`}>
+                    <selectedSignal.icon className="w-4 h-4 text-white" />
+                  </div>
+                  {selectedSignal.title}
+                </>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedSignal && (
+            <div className="space-y-4">
+              <div className="flex items-center space-x-3">
+                <span className="text-gray-400 text-sm">{selectedSignal.timestamp}</span>
+                <Badge className={`text-xs ${
+                  selectedSignal.confidence >= 90 ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                  selectedSignal.confidence >= 80 ? 'bg-[#1a5ee9]/20 text-[#1a5ee9] border-[#1a5ee9]/30' :
+                  selectedSignal.confidence >= 70 ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
+                  'bg-red-500/20 text-red-400 border-red-500/30'
                 }`}>
-                  <selectedSignal.icon className="w-4 h-4 text-white" />
-                </div>
-                {selectedSignal.title}
-              </>
-            )}
-          </DialogTitle>
-        </DialogHeader>
-        
-        {selectedSignal && (
-          <div className="space-y-4">
-            <div className="flex items-center space-x-3">
-              <span className="text-gray-400 text-sm">{selectedSignal.timestamp}</span>
-              <Badge className={`text-xs ${
-                selectedSignal.confidence >= 90 ? 'bg-green-500/20 text-green-400 border-green-500/30' :
-                selectedSignal.confidence >= 80 ? 'bg-[#1a5ee9]/20 text-[#1a5ee9] border-[#1a5ee9]/30' :
-                selectedSignal.confidence >= 70 ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
-                'bg-red-500/20 text-red-400 border-red-500/30'
-              }`}>
-                {selectedSignal.confidence}% Confidence
-              </Badge>
-            </div>
-            
-            <div className="space-y-3">
-              <div>
-                <h4 className="text-sm font-medium text-gray-300 mb-1">Summary</h4>
-                <p className="text-gray-400 text-sm">{selectedSignal.description}</p>
-              </div>
-              
-              <div>
-                <h4 className="text-sm font-medium text-gray-300 mb-1">Analysis</h4>
-                <p className="text-gray-400 text-sm">{selectedSignal.details}</p>
-              </div>
-              
-              <div>
-                <h4 className="text-sm font-medium text-gray-300 mb-1">Signal Type</h4>
-                <Badge variant="outline" className="text-xs border-white/20 text-gray-300">
-                  {selectedSignal.type.charAt(0).toUpperCase() + selectedSignal.type.slice(1)}
+                  {selectedSignal.confidence}% Confidence
                 </Badge>
               </div>
+              
+              <div className="space-y-3">
+                <div>
+                  <h4 className="text-sm font-medium text-gray-300 mb-1">Summary</h4>
+                  <p className="text-gray-400 text-sm">{selectedSignal.description}</p>
+                </div>
+                
+                <div>
+                  <h4 className="text-sm font-medium text-gray-300 mb-1">Analysis</h4>
+                  <p className="text-gray-400 text-sm">{selectedSignal.details}</p>
+                </div>
+                
+                <div>
+                  <h4 className="text-sm font-medium text-gray-300 mb-1">Signal Type</h4>
+                  <Badge variant="outline" className="text-xs border-white/20 text-gray-300">
+                    {selectedSignal.type.charAt(0).toUpperCase() + selectedSignal.type.slice(1)}
+                  </Badge>
+                </div>
+              </div>
+              
+              <div className="flex space-x-3 pt-4">
+                <Button className="flex-1 bg-gradient-to-r from-[#1a5ee9] to-[#3d8bfd] hover:from-[#1554d6] hover:to-[#2d7aed] text-white">
+                  Take Action
+                </Button>
+                <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                  Dismiss
+                </Button>
+              </div>
             </div>
-            
-            <div className="flex space-x-3 pt-4">
-              <Button className="flex-1 bg-gradient-to-r from-[#1a5ee9] to-[#3d8bfd] hover:from-[#1554d6] hover:to-[#2d7aed] text-white">
-                Take Action
-              </Button>
-              <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                Dismiss
-              </Button>
-            </div>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
   )
 }
