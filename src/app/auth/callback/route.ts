@@ -16,13 +16,21 @@ export async function GET(request: NextRequest) {
 
     if (!error) {
       // Successfully exchanged code for session
+      // Refresh the session to ensure we have the latest data
+      const { data: { session } } = await supabase.auth.refreshSession()
+      
       // Create a response with cookies to ensure session is properly set
       const response = NextResponse.redirect(`${origin}${next}`)
       
       // Set secure cookies for the session
-      const { data: { session } } = await supabase.auth.getSession()
       if (session) {
-        response.cookies.set('supabase.auth.token', session.access_token, {
+        response.cookies.set('sb-access-token', session.access_token, {
+          path: '/',
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 7, // 1 week
+        })
+        response.cookies.set('sb-refresh-token', session.refresh_token || '', {
           path: '/',
           secure: process.env.NODE_ENV === 'production',
           sameSite: 'lax',

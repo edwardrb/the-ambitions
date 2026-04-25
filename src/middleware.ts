@@ -24,15 +24,24 @@ export async function middleware(req: NextRequest) {
     }
   )
 
-  // Refresh session if expired - required for Server Components
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  // IMPORTANT: This refreshes the session if it's expired
-  if (!session) {
-    await supabase.auth.refreshSession()
+  // IMPORTANT: Always attempt to refresh the session first
+  // This ensures we have the most up-to-date session data
+  const { data: { session }, error: refreshError } = await supabase.auth.refreshSession()
+  
+  // If refresh fails, try to get existing session
+  let finalSession = session
+  if (!session || refreshError) {
+    const { data: { session: existingSession } } = await supabase.auth.getSession()
+    finalSession = existingSession
   }
+
+  // Debug logging (remove in production)
+  console.log('Middleware - Session check:', {
+    pathname: req.nextUrl.pathname,
+    hasSession: !!finalSession,
+    refreshError: !!refreshError,
+    userId: finalSession?.user?.id
+  })
 
   // Protected routes
   const protectedRoutes = ['/dashboard']
@@ -41,7 +50,7 @@ export async function middleware(req: NextRequest) {
   )
 
   // Redirect unauthenticated users to login for protected routes
-  if (isProtectedRoute && !session) {
+  if (isProtectedRoute && !finalSession) {
     const redirectUrl = new URL('/login', req.url)
     redirectUrl.searchParams.set('redirectedFrom', req.nextUrl.pathname)
     return NextResponse.redirect(redirectUrl)
@@ -53,12 +62,12 @@ export async function middleware(req: NextRequest) {
     req.nextUrl.pathname.startsWith(route)
   )
 
-  if (isAuthRoute && session) {
+  if (isAuthRoute && finalSession) {
     return NextResponse.redirect(new URL('/dashboard', req.url))
   }
 
   // Redirect authenticated users from homepage to dashboard
-  if (req.nextUrl.pathname === '/' && session) {
+  if (req.nextUrl.pathname === '/' && finalSession) {
     return NextResponse.redirect(new URL('/dashboard', req.url))
   }
 

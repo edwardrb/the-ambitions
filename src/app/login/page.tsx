@@ -37,6 +37,8 @@ export default function LoginPage() {
         if (error) {
           setError(error.message)
         } else {
+          // Force Next.js to recognize the new login cookie
+          await router.refresh()
           router.push('/dashboard')
         }
       }
