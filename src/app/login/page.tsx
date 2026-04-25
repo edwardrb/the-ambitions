@@ -12,6 +12,7 @@ import AnimateOnScroll from "@/components/AnimateOnScroll"
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -23,6 +24,13 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
     setMessage('')
+
+    // Validate password match for signup
+    if (isSignUp && password !== confirmPassword) {
+      setError('Passwords do not match. Please try again.')
+      setLoading(false)
+      return
+    }
 
     try {
       if (isSignUp) {
@@ -125,6 +133,28 @@ export default function LoginPage() {
                     />
                   </div>
 
+                  {isSignUp && (
+                    <div>
+                      <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
+                        Confirm Password
+                      </label>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                        className={`h-12 bg-white/10 border-white/20 text-white placeholder-gray-500 rounded-xl focus:border-[#1a5ee9] focus:ring-2 focus:ring-[#1a5ee9]/20 backdrop-blur-sm ${
+                          confirmPassword && password !== confirmPassword ? 'border-red-500 focus:border-red-500' : ''
+                        }`}
+                        placeholder="Confirm your password"
+                      />
+                      {confirmPassword && password !== confirmPassword && (
+                        <p className="text-red-400 text-sm mt-1">Passwords do not match</p>
+                      )}
+                    </div>
+                  )}
+
                   {error && (
                     <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-4">
                       <p className="text-red-200 text-sm">{error}</p>
@@ -154,6 +184,7 @@ export default function LoginPage() {
                         setIsSignUp(!isSignUp)
                         setError('')
                         setMessage('')
+                        setConfirmPassword('')
                       }}
                       className="ml-1 text-[#1a5ee9] hover:text-[#3d8bfd] transition-colors font-medium"
                     >
