@@ -94,11 +94,18 @@ export default function SetupWizard() {
   }
 
   const handleSavePreferences = async () => {
+    console.log('🚀 handleSavePreferences called')
+    console.log('📊 Selected industries:', selectedIndustries)
+    console.log('🌍 Selected regions:', selectedRegions)
+    console.log('👤 User ID:', userId)
+    
     if (selectedIndustries.length === 0 || selectedRegions.length === 0 || !userId) {
+      console.log('❌ Validation failed - missing required fields')
       return
     }
 
     setIsSaving(true)
+    console.log('💾 Starting to save preferences...')
 
     try {
       const { error } = await supabase
@@ -113,13 +120,18 @@ export default function SetupWizard() {
         })
 
       if (error) {
-        console.error('Error saving preferences:', error)
+        console.error('❌ Error saving preferences:', error)
       } else {
-        // Navigate to dashboard after successful save
-        router.push('/dashboard')
+        console.log('✅ Preferences saved successfully!')
+        console.log('🔄 Waiting 500ms for database consistency...')
+        // Wait a moment for database consistency before navigation
+        setTimeout(() => {
+          console.log('🔄 Navigating to dashboard...')
+          router.push('/dashboard')
+        }, 500)
       }
     } catch (error) {
-      console.error('Error:', error)
+      console.error('❌ Error:', error)
     } finally {
       setIsSaving(false)
     }

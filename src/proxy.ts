@@ -57,6 +57,7 @@ export async function proxy(req: NextRequest) {
   // Check if user has preferences set when accessing main dashboard
   if (finalSession && (req.nextUrl.pathname === '/dashboard' || req.nextUrl.pathname === '/dashboard/')) {
     try {
+      console.log('🔍 Proxy: Checking preferences for user:', finalSession.user.id)
       // Check if user has preferences set
       const { data: userPrefs, error } = await supabase
         .from('user_preferences')
@@ -64,9 +65,14 @@ export async function proxy(req: NextRequest) {
         .eq('user_id', finalSession.user.id)
         .single()
 
+      console.log('🔍 Proxy: User preferences result:', { userPrefs, error })
+
       // If no preferences found, redirect to setup
       if (error || !userPrefs) {
+        console.log('🔄 Proxy: No preferences found, redirecting to setup')
         return NextResponse.redirect(new URL('/dashboard/setup', req.url))
+      } else {
+        console.log('✅ Proxy: Preferences found, allowing dashboard access')
       }
     } catch (error) {
       console.error('Error checking user preferences:', error)
