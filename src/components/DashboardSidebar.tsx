@@ -28,6 +28,7 @@ export default function DashboardSidebar() {
     { id: 'activity', label: 'Activity', icon: Activity },
     { id: 'security', label: 'Security', icon: Shield },
     { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'settings', label: 'Settings', icon: Settings },
   ]
 
   return (

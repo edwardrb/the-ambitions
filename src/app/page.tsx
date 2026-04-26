@@ -1,15 +1,83 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import AnimateOnScroll from "@/components/AnimateOnScroll"
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 export default function Home() {
   const [email, setEmail] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showSuccessToast, setShowSuccessToast] = useState(false)
+  const [waitlistCount, setWaitlistCount] = useState(0)
+  const [signalsProcessed, setSignalsProcessed] = useState(0)
+  const [successRate, setSuccessRate] = useState(0)
+  const [activeUsers, setActiveUsers] = useState(0)
+
+  useEffect(() => {
+    const animateCounter = (setter: Function, target: number, duration: number) => {
+      const startTime = Date.now()
+      const startValue = 0
+      
+      const animate = () => {
+        const now = Date.now()
+        const progress = Math.min((now - startTime) / duration, 1)
+        const currentValue = Math.floor(startValue + (target - startValue) * progress)
+        
+        setter(currentValue)
+        
+        if (progress < 1) {
+          requestAnimationFrame(animate)
+        }
+      }
+      
+      animate()
+    }
+
+    // Animate all counters with staggered timing
+    animateCounter(setWaitlistCount, 1247, 2000)
+    setTimeout(() => animateCounter(setSignalsProcessed, 8564, 1800), 200)
+    setTimeout(() => animateCounter(setSuccessRate, 94, 1600), 400)
+    setTimeout(() => animateCounter(setActiveUsers, 89, 1400), 600)
+  }, [])
+
+  const handleSubmitWaitlist = async () => {
+    if (!email || !email.includes('@')) {
+      return
+    }
+
+    setIsSubmitting(true)
+    
+    try {
+      const { error } = await supabase
+        .from('waitlist')
+        .insert([{ 
+          email: email.toLowerCase(),
+          created_at: new Date().toISOString()
+        }])
+
+      if (error) {
+        console.error('Error adding to waitlist:', error)
+      } else {
+        setShowSuccessToast(true)
+        setEmail('')
+        setTimeout(() => setShowSuccessToast(false), 5000)
+      }
+    } catch (error) {
+      console.error('Error:', error)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-black text-white overflow-hidden">
@@ -52,144 +120,98 @@ export default function Home() {
             </div>
 
             {/* Main Headline */}
-            <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-4 sm:mb-6 leading-tight">
               <span className="bg-gradient-to-r from-white via-white to-gray-400 bg-clip-text text-transparent">
-                The Future of
+                AI-Powered Market
               </span>
               <br />
               <span className="bg-gradient-to-r from-[#1a5ee9] via-[#3d8bfd] to-[#6ba3ff] bg-clip-text text-transparent">
-                Agentic Ambition
+                Intelligence
               </span>
             </h1>
 
             {/* Subtitle */}
-            <p className="text-xl md:text-2xl text-gray-400 mb-12 max-w-4xl mx-auto leading-relaxed">
-              Experience the next generation of intelligent automation. Where cutting-edge AI meets human potential to create unprecedented possibilities.
+            <p className="text-lg sm:text-xl md:text-2xl text-gray-400 mb-8 sm:mb-12 max-w-4xl mx-auto leading-relaxed px-4 sm:px-0">
+              Get real-time Major Alpha signals, personalized market sentiment analysis, and automated investment insights powered by advanced AI.
             </p>
 
             {/* Email Capture Section */}
             <AnimateOnScroll delay={0.2}>
-              <div className="max-w-2xl mx-auto mb-16">
-                <div className="backdrop-blur-xl bg-white/5 rounded-2xl p-8 border border-white/10 shadow-2xl">
-                  <p className="text-gray-300 mb-6 text-lg">
-                    Be the first to revolutionize your workflow. Join our exclusive beta program.
+              <div className="max-w-2xl mx-auto mb-12 sm:mb-16 px-4 sm:px-0">
+                <div className="backdrop-blur-xl bg-white/5 rounded-2xl p-6 sm:p-8 border border-white/10 shadow-2xl">
+                  <p className="text-gray-300 mb-4 sm:mb-6 text-base sm:text-lg">
+                    Join {waitlistCount}+ professionals already on the waitlist for AI-powered market intelligence.
                   </p>
-                  <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                     <Input
                       type="email"
                       placeholder="Enter your email address"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="flex-1 h-14 bg-white/10 border-white/20 text-white placeholder-gray-500 rounded-xl focus:border-[#1a5ee9] focus:ring-2 focus:ring-[#1a5ee9]/20 backdrop-blur-sm"
+                      className="flex-1 h-12 sm:h-14 bg-white/10 border-white/20 text-white placeholder-gray-500 rounded-xl focus:border-[#1a5ee9] focus:ring-2 focus:ring-[#1a5ee9]/20 backdrop-blur-sm text-sm sm:text-base"
                     />
                     <Button 
                       size="lg"
-                      className="h-14 px-8 bg-gradient-to-r from-[#1a5ee9] to-[#3d8bfd] hover:from-[#1554d6] hover:to-[#2d7aed] text-white font-semibold rounded-xl shadow-lg shadow-[#1a5ee9]/25 transition-all duration-300 transform hover:scale-105"
+                      onClick={handleSubmitWaitlist}
+                      disabled={isSubmitting}
+                      className="h-12 sm:h-14 px-4 sm:px-8 bg-gradient-to-r from-[#1a5ee9] to-[#3d8bfd] hover:from-[#1554d6] hover:to-[#2d7aed] text-white font-semibold rounded-xl shadow-lg shadow-[#1a5ee9]/25 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                     >
-                      Get Early Access
+                      {isSubmitting ? 'Joining...' : 'Get Early Access'}
                     </Button>
                   </div>
-                  <p className="text-gray-500 text-sm mt-4">
-                    Join 10,000+ professionals on the waitlist. No spam, ever.
+                  <p className="text-gray-500 text-xs sm:text-sm mt-3 sm:mt-4">
+                    No spam, ever. Get early access to AI-powered market intelligence.
                   </p>
                 </div>
               </div>
             </AnimateOnScroll>
           </div>
 
-          {/* Bento Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-20">
-            {/* Large Feature Card */}
+          {/* Statistics Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-12 sm:mb-20 px-4 sm:px-0">
+            {/* Waitlist Count */}
             <AnimateOnScroll delay={0.3}>
-              <Card className="md:col-span-2 lg:row-span-2 backdrop-blur-xl bg-white/5 border-white/10 rounded-2xl overflow-hidden group hover:bg-white/10 transition-all duration-500">
-                <CardContent className="p-8 h-full">
-                  <div className="flex flex-col h-full">
-                    <div className="w-16 h-16 bg-gradient-to-r from-[#1a5ee9] to-[#3d8bfd] rounded-2xl mb-6 shadow-lg shadow-[#1a5ee9]/25"></div>
-                    <h3 className="text-3xl font-bold text-white mb-4">Intelligent Automation</h3>
-                    <p className="text-gray-400 mb-6 text-lg leading-relaxed">
-                      Advanced AI-powered workflows that adapt to your unique needs and scale with your ambitions. Experience seamless integration with your existing tools.
-                    </p>
-                    <div className="mt-auto">
-                      <div className="flex items-center text-[#1a5ee9] font-medium group-hover:text-[#3d8bfd] transition-colors">
-                        Learn more →
-                      </div>
-                    </div>
+              <Card className="backdrop-blur-xl bg-gradient-to-br from-[#1a5ee9]/10 to-[#3d8bfd]/5 border-[#1a5ee9]/20 rounded-xl sm:rounded-2xl overflow-hidden">
+                <CardContent className="p-4 sm:p-6 lg:p-8">
+                  <div className="text-center">
+                    <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1a5ee9] mb-1 sm:mb-2">{waitlistCount.toLocaleString()}+</div>
+                    <div className="text-gray-400 text-xs sm:text-sm">Waitlist</div>
                   </div>
                 </CardContent>
               </Card>
             </AnimateOnScroll>
 
-            {/* Medium Feature Card */}
+            {/* Signals Processed */}
             <AnimateOnScroll delay={0.4}>
-              <Card className="backdrop-blur-xl bg-white/5 border-white/10 rounded-2xl overflow-hidden group hover:bg-white/10 transition-all duration-500">
-                <CardContent className="p-8 h-full">
-                  <div className="flex flex-col h-full">
-                    <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl mb-4 shadow-lg shadow-purple-500/25"></div>
-                    <h3 className="text-xl font-bold text-white mb-3">Real-time Collaboration</h3>
-                    <p className="text-gray-400 mb-4 leading-relaxed">
-                      Connect with like-minded individuals and build something extraordinary together.
-                    </p>
-                    <div className="mt-auto">
-                      <div className="flex items-center text-purple-400 font-medium group-hover:text-purple-300 transition-colors">
-                        Explore →
-                      </div>
-                    </div>
+              <Card className="backdrop-blur-xl bg-gradient-to-br from-green-500/10 to-emerald-500/5 border-green-500/20 rounded-xl sm:rounded-2xl overflow-hidden">
+                <CardContent className="p-4 sm:p-6 lg:p-8">
+                  <div className="text-center">
+                    <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-green-400 mb-1 sm:mb-2">{signalsProcessed.toLocaleString()}</div>
+                    <div className="text-gray-400 text-xs sm:text-sm">Signals</div>
                   </div>
                 </CardContent>
               </Card>
             </AnimateOnScroll>
 
-            {/* Small Feature Card */}
+            {/* Success Rate */}
             <AnimateOnScroll delay={0.5}>
-              <Card className="backdrop-blur-xl bg-white/5 border-white/10 rounded-2xl overflow-hidden group hover:bg-white/10 transition-all duration-500">
-                <CardContent className="p-8 h-full">
-                  <div className="flex flex-col h-full">
-                    <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl mb-4 shadow-lg shadow-green-500/25"></div>
-                    <h3 className="text-xl font-bold text-white mb-3">Growth Analytics</h3>
-                    <p className="text-gray-400 mb-4 leading-relaxed">
-                      Track your progress with detailed insights and make data-driven decisions.
-                    </p>
-                    <div className="mt-auto">
-                      <div className="flex items-center text-green-400 font-medium group-hover:text-green-300 transition-colors">
-                        Discover →
-                      </div>
-                    </div>
+              <Card className="backdrop-blur-xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 border-amber-500/20 rounded-xl sm:rounded-2xl overflow-hidden">
+                <CardContent className="p-4 sm:p-6 lg:p-8">
+                  <div className="text-center">
+                    <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-amber-300 mb-1 sm:mb-2">{successRate}%</div>
+                    <div className="text-gray-400 text-xs sm:text-sm">Success Rate</div>
                   </div>
                 </CardContent>
               </Card>
             </AnimateOnScroll>
 
-            {/* Stats Card */}
+            {/* Active Users */}
             <AnimateOnScroll delay={0.6}>
-              <Card className="backdrop-blur-xl bg-gradient-to-br from-[#1a5ee9]/10 to-[#3d8bfd]/5 border-[#1a5ee9]/20 rounded-2xl overflow-hidden">
-                <CardContent className="p-8">
+              <Card className="backdrop-blur-xl bg-gradient-to-br from-purple-500/10 to-pink-500/5 border-purple-500/20 rounded-xl sm:rounded-2xl overflow-hidden">
+                <CardContent className="p-4 sm:p-6 lg:p-8">
                   <div className="text-center">
-                    <div className="text-4xl font-bold text-[#1a5ee9] mb-2">10K+</div>
-                    <div className="text-gray-400">Beta Users</div>
-                  </div>
-                </CardContent>
-              </Card>
-            </AnimateOnScroll>
-
-            {/* Stats Card */}
-            <AnimateOnScroll delay={0.7}>
-              <Card className="backdrop-blur-xl bg-gradient-to-br from-purple-500/10 to-pink-500/5 border-purple-500/20 rounded-2xl overflow-hidden">
-                <CardContent className="p-8">
-                  <div className="text-center">
-                    <div className="text-4xl font-bold text-purple-400 mb-2">99.9%</div>
-                    <div className="text-gray-400">Uptime</div>
-                  </div>
-                </CardContent>
-              </Card>
-            </AnimateOnScroll>
-
-            {/* Stats Card */}
-            <AnimateOnScroll delay={0.8}>
-              <Card className="backdrop-blur-xl bg-gradient-to-br from-green-500/10 to-emerald-500/5 border-green-500/20 rounded-2xl overflow-hidden">
-                <CardContent className="p-8">
-                  <div className="text-center">
-                    <div className="text-4xl font-bold text-green-400 mb-2">24/7</div>
-                    <div className="text-gray-400">Support</div>
+                    <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-purple-400 mb-1 sm:mb-2">{activeUsers}</div>
+                    <div className="text-gray-400 text-xs sm:text-sm">Beta Users</div>
                   </div>
                 </CardContent>
               </Card>
@@ -197,27 +219,29 @@ export default function Home() {
           </div>
 
           {/* Bottom CTA Section */}
-          <AnimateOnScroll delay={0.9}>
-            <div className="text-center">
-              <Card className="backdrop-blur-xl bg-white/5 border-white/10 rounded-3xl p-12 max-w-4xl mx-auto">
-                <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-                  Ready to Transform Your Future?
+          <AnimateOnScroll delay={0.7}>
+            <div className="text-center px-4 sm:px-0">
+              <Card className="backdrop-blur-xl bg-white/5 border-white/10 rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-12 max-w-4xl mx-auto">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4 sm:mb-6">
+                  Get Your Market Intelligence Edge
                 </h2>
-                <p className="text-gray-400 text-lg mb-8 max-w-2xl mx-auto">
-                  Join thousands of professionals who are already revolutionizing their workflow with our agentic platform.
+                <p className="text-gray-400 text-base sm:text-lg mb-6 sm:mb-8 max-w-2xl mx-auto">
+                  Join professionals accessing real-time Major Alpha signals, AI-powered sentiment analysis, and personalized investment insights.
                 </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
                   <Button 
                     size="lg"
-                    className="h-14 px-8 bg-gradient-to-r from-[#1a5ee9] to-[#3d8bfd] hover:from-[#1554d6] hover:to-[#2d7aed] text-white font-semibold rounded-xl shadow-lg shadow-[#1a5ee9]/25 transition-all duration-300 transform hover:scale-105"
+                    onClick={handleSubmitWaitlist}
+                    disabled={isSubmitting}
+                    className="h-12 sm:h-14 px-6 sm:px-8 bg-gradient-to-r from-[#1a5ee9] to-[#3d8bfd] hover:from-[#1554d6] hover:to-[#2d7aed] text-white font-semibold rounded-xl shadow-lg shadow-[#1a5ee9]/25 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                   >
-                    Start Free Trial
+                    {isSubmitting ? 'Joining...' : 'Join Waitlist'}
                   </Button>
                   <Link href="/login">
                     <Button 
                       variant="outline" 
                       size="lg"
-                      className="h-14 px-8 bg-white/10 border-white/20 text-white hover:bg-white/20 rounded-xl backdrop-blur-sm transition-all duration-300"
+                      className="h-12 sm:h-14 px-6 sm:px-8 bg-white/10 border-white/20 text-white hover:bg-white/20 rounded-xl backdrop-blur-sm transition-all duration-300 text-sm sm:text-base"
                     >
                       Sign In
                     </Button>
@@ -228,6 +252,21 @@ export default function Home() {
           </AnimateOnScroll>
         </div>
       </main>
+
+      {/* Success Toast */}
+      {showSuccessToast && (
+        <div className="fixed top-20 sm:top-24 right-4 sm:right-6 left-4 sm:left-auto z-50 animate-in slide-in-from-right duration-300">
+          <div className="bg-gradient-to-r from-green-500/90 to-emerald-500/90 backdrop-blur-xl border border-green-400/30 rounded-xl p-3 sm:p-4 shadow-lg shadow-green-500/25 max-w-sm mx-auto sm:mx-0">
+            <div className="flex items-center space-x-3">
+              <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse flex-shrink-0"></div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-white font-semibold text-sm">You're on the list!</h4>
+                <p className="text-green-100 text-xs">We will reach out with your invite.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
