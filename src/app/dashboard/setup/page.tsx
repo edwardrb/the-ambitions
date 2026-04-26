@@ -1,11 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Slider } from "@/components/ui/slider"
-import { Check, ChevronRight, Zap, Target, Globe } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Check, ChevronRight, Zap, Target, Globe, Plus } from "lucide-react"
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
@@ -25,7 +27,8 @@ const INDUSTRIES = [
   'Media',
   'Agriculture',
   'Education',
-  'Government'
+  'Government',
+  'Other'
 ]
 
 const REGIONS = [
@@ -38,12 +41,15 @@ const REGIONS = [
 ]
 
 export default function SetupWizard() {
+  const router = useRouter()
   const [selectedIndustries, setSelectedIndustries] = useState<string[]>([])
   const [selectedRegions, setSelectedRegions] = useState<string[]>([])
   const [alphaThreshold, setAlphaThreshold] = useState([75])
   const [isSaving, setIsSaving] = useState(false)
   const [showLaunchScreen, setShowLaunchScreen] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
+  const [customIndustry, setCustomIndustry] = useState('')
+  const [showCustomInput, setShowCustomInput] = useState(false)
 
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -56,11 +62,27 @@ export default function SetupWizard() {
   }, [])
 
   const toggleIndustry = (industry: string) => {
-    setSelectedIndustries(prev => 
-      prev.includes(industry) 
-        ? prev.filter(i => i !== industry)
-        : [...prev, industry]
-    )
+    if (industry === 'Other') {
+      setShowCustomInput(!showCustomInput)
+      if (!showCustomInput) {
+        // Remove 'Other' from selected industries when opening input
+        setSelectedIndustries(prev => prev.filter(i => i !== 'Other'))
+      }
+    } else {
+      setSelectedIndustries(prev => 
+        prev.includes(industry) 
+          ? prev.filter(i => i !== industry)
+          : [...prev, industry]
+      )
+    }
+  }
+
+  const addCustomIndustry = () => {
+    if (customIndustry.trim() && !selectedIndustries.includes(customIndustry.trim())) {
+      setSelectedIndustries(prev => [...prev, customIndustry.trim()])
+      setCustomIndustry('')
+      setShowCustomInput(false)
+    }
   }
 
   const toggleRegion = (region: string) => {
@@ -93,7 +115,8 @@ export default function SetupWizard() {
       if (error) {
         console.error('Error saving preferences:', error)
       } else {
-        setShowLaunchScreen(true)
+        // Navigate to dashboard after successful save
+        router.push('/dashboard')
       }
     } catch (error) {
       console.error('Error:', error)
@@ -161,7 +184,7 @@ export default function SetupWizard() {
 
           <Button 
             size="lg"
-            onClick={() => window.location.href = '/dashboard'}
+            onClick={() => router.push('/dashboard')}
             className="h-12 sm:h-14 lg:h-16 px-6 sm:px-8 lg:px-12 bg-gradient-to-r from-[#1a5ee9] to-[#3d8bfd] hover:from-[#1554d6] hover:to-[#2d7aed] text-white font-bold text-base sm:text-lg rounded-xl sm:rounded-2xl shadow-lg shadow-[#1a5ee9]/25 transition-all duration-300 transform hover:scale-105"
           >
             <Zap className="w-4 h-4 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
@@ -204,18 +227,58 @@ export default function SetupWizard() {
                     key={industry}
                     onClick={() => toggleIndustry(industry)}
                     className={`w-full flex items-center justify-between p-2 sm:p-3 rounded-lg border transition-all duration-200 ${
-                      selectedIndustries.includes(industry)
+                      selectedIndustries.includes(industry) && industry !== 'Other'
                         ? 'bg-[#1a5ee9]/10 border-[#1a5ee9]/30 text-white'
                         : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
                     }`}
                   >
                     <span className="text-xs sm:text-sm">{industry}</span>
-                    {selectedIndustries.includes(industry) && (
+                    {selectedIndustries.includes(industry) && industry !== 'Other' && (
                       <Check className="w-3 h-3 sm:w-4 sm:h-4 text-[#1a5ee9]" />
+                    )}
+                    {industry === 'Other' && showCustomInput && (
+                      <Plus className="w-3 h-3 sm:w-4 sm:h-4 text-[#1a5ee9]" />
                     )}
                   </button>
                 ))}
               </div>
+
+              {/* Custom Industry Input */}
+              {showCustomInput && (
+                <div className="mt-3 p-3 bg-[#1a5ee9]/10 border border-[#1a5ee9]/30 rounded-lg">
+                  <div className="flex gap-2">
+                    <Input
+                      type="text"
+                      placeholder="Enter your niche industry..."
+                      value={customIndustry}
+                      onChange={(e) => setCustomIndustry(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && addCustomIndustry()}
+                      className="flex-1 bg-white/10 border-white/20 text-white placeholder-gray-500 text-sm"
+                    />
+                    <Button
+                      onClick={addCustomIndustry}
+                      disabled={!customIndustry.trim()}
+                      className="px-3 py-2 bg-[#1a5ee9] hover:bg-[#1554d6] text-white text-sm h-auto"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Custom Industries Display */}
+              {selectedIndustries.filter(ind => !INDUSTRIES.includes(ind)).length > 0 && (
+                <div className="mt-3 pt-3 border-t border-white/10">
+                  <p className="text-xs text-gray-400 mb-2">Custom Industries:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {selectedIndustries.filter(ind => !INDUSTRIES.includes(ind)).map(customInd => (
+                      <Badge key={customInd} className="bg-amber-500/20 text-amber-300 border-amber-400/30 text-xs">
+                        {customInd}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 

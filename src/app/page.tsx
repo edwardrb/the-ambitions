@@ -120,27 +120,34 @@ export default function Home() {
             </div>
 
             {/* Main Headline */}
-            <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-4 sm:mb-6 leading-tight">
-              <span className="bg-gradient-to-r from-white via-white to-gray-400 bg-clip-text text-transparent">
-                AI-Powered Market
+            <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-4 sm:mb-6" style={{ lineHeight: '0.85' }}>
+              <span className="font-serif italic bg-gradient-to-r from-amber-400 to-yellow-600 bg-clip-text text-transparent" style={{ fontFamily: "'Playfair Display', serif" }}>
+                The Ambitions
               </span>
               <br />
-              <span className="bg-gradient-to-r from-[#1a5ee9] via-[#3d8bfd] to-[#6ba3ff] bg-clip-text text-transparent">
-                Intelligence
+              <span className="bg-gradient-to-r from-white via-white to-gray-400 bg-clip-text text-transparent">
+                of Market Domination.
+              </span>
+              <br />
+              <span className="bg-gradient-to-r from-white via-white to-gray-400 bg-clip-text text-transparent">
+                Capture the Asymmetry.
               </span>
             </h1>
 
             {/* Subtitle */}
-            <p className="text-lg sm:text-xl md:text-2xl text-gray-400 mb-8 sm:mb-12 max-w-4xl mx-auto leading-relaxed px-4 sm:px-0">
-              Get real-time Major Alpha signals, personalized market sentiment analysis, and automated investment insights powered by advanced AI.
+            <p className="text-lg sm:text-xl md:text-2xl text-zinc-400 mb-8 sm:mb-12 max-w-4xl mx-auto leading-relaxed px-4 sm:px-0" style={{ letterSpacing: '0.02em' }}>
+              A self-evolving engine that learns your targets, scores the world's data, and delivers mission-critical insights before they hit the wire. High-conviction signals, institutional-grade sentiment, and one-click execution.
             </p>
 
             {/* Email Capture Section */}
             <AnimateOnScroll delay={0.2}>
               <div className="max-w-2xl mx-auto mb-12 sm:mb-16 px-4 sm:px-0">
-                <div className="backdrop-blur-xl bg-white/5 rounded-2xl p-6 sm:p-8 border border-white/10 shadow-2xl">
-                  <p className="text-gray-300 mb-4 sm:mb-6 text-base sm:text-lg">
-                    Join {waitlistCount}+ professionals already on the waitlist for AI-powered market intelligence.
+                <div className="backdrop-blur-xl bg-black/60 rounded-2xl p-6 sm:p-8 border border-amber-500/20 shadow-2xl">
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">
+                    Deploy Your Analyst Assistant
+                  </h3>
+                  <p className="text-zinc-300 mb-4 sm:mb-6 text-base sm:text-lg">
+                    Register for early access to the self-evolving engine. Be the first to act on high-conviction insights that everyone talks about 3 months later.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                     <Input
@@ -154,9 +161,9 @@ export default function Home() {
                       size="lg"
                       onClick={handleSubmitWaitlist}
                       disabled={isSubmitting}
-                      className="h-12 sm:h-14 px-4 sm:px-8 bg-gradient-to-r from-[#1a5ee9] to-[#3d8bfd] hover:from-[#1554d6] hover:to-[#2d7aed] text-white font-semibold rounded-xl shadow-lg shadow-[#1a5ee9]/25 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                      className="h-12 sm:h-14 px-4 sm:px-8 bg-gradient-to-r from-amber-400 to-yellow-600 hover:from-amber-500 hover:to-yellow-700 text-black font-bold rounded-xl shadow-lg shadow-amber-500/25 transition-all duration-300 hover:shadow-amber-500/40 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                     >
-                      {isSubmitting ? 'Joining...' : 'Get Early Access'}
+                      {isSubmitting ? 'Joining...' : 'SECURE EARLY ACCESS'}
                     </Button>
                   </div>
                   <p className="text-gray-500 text-xs sm:text-sm mt-3 sm:mt-4">
