@@ -1,2 +1,12 @@
-node_modules/ 
-".next/" 
+# Next.js
+.next/
+out/
+build/
+
+# Production
+dist/
+
+# Development cache
+.turbo/
+
+node_modules/
