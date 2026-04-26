@@ -1,12 +1,26 @@
-# Next.js
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
 .next/
 out/
 build/
 
-# Production
-dist/
+# Environment Variables (CRITICAL: Do not leak your Gemini/Supabase keys!)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# Development cache
-.turbo/
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-node_modules/
+# System Files
+.DS_Store
+Thumbs.db

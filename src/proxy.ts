@@ -49,11 +49,30 @@ export async function proxy(req: NextRequest) {
     req.nextUrl.pathname.startsWith(route)
   )
 
-  // Redirect unauthenticated users to login for protected routes
+  // Redirect unauthenticated users to homepage for protected routes
   if (isProtectedRoute && !finalSession) {
-    const redirectUrl = new URL('/login', req.url)
-    redirectUrl.searchParams.set('redirectedFrom', req.nextUrl.pathname)
-    return NextResponse.redirect(redirectUrl)
+    return NextResponse.redirect(new URL('/', req.url))
+  }
+
+  // Check if user has preferences set when accessing main dashboard
+  if (finalSession && (req.nextUrl.pathname === '/dashboard' || req.nextUrl.pathname === '/dashboard/')) {
+    try {
+      // Check if user has preferences set
+      const { data: userPrefs, error } = await supabase
+        .from('user_preferences')
+        .select('*')
+        .eq('user_id', finalSession.user.id)
+        .single()
+
+      // If no preferences found, redirect to setup
+      if (error || !userPrefs) {
+        return NextResponse.redirect(new URL('/dashboard/setup', req.url))
+      }
+    } catch (error) {
+      console.error('Error checking user preferences:', error)
+      // If there's an error checking preferences, redirect to setup to be safe
+      return NextResponse.redirect(new URL('/dashboard/setup', req.url))
+    }
   }
 
   // Redirect authenticated users away from auth pages

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -43,6 +43,17 @@ export default function SetupWizard() {
   const [alphaThreshold, setAlphaThreshold] = useState([75])
   const [isSaving, setIsSaving] = useState(false)
   const [showLaunchScreen, setShowLaunchScreen] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user?.id) {
+        setUserId(session.user.id)
+      }
+    }
+    getCurrentUser()
+  }, [])
 
   const toggleIndustry = (industry: string) => {
     setSelectedIndustries(prev => 
@@ -61,7 +72,7 @@ export default function SetupWizard() {
   }
 
   const handleSavePreferences = async () => {
-    if (selectedIndustries.length === 0 || selectedRegions.length === 0) {
+    if (selectedIndustries.length === 0 || selectedRegions.length === 0 || !userId) {
       return
     }
 
@@ -71,7 +82,7 @@ export default function SetupWizard() {
       const { error } = await supabase
         .from('user_preferences')
         .upsert({
-          user_id: 'current_user', // TODO: Replace with actual user ID
+          user_id: userId,
           target_industries: selectedIndustries,
           target_regions: selectedRegions,
           min_alpha_threshold: alphaThreshold[0],
