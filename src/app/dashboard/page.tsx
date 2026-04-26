@@ -37,11 +37,19 @@ export default function Dashboard() {
   const [batchSummaries, setBatchSummaries] = useState<any[]>([])
   const [systemStatus, setSystemStatus] = useState<'scanning' | 'reporting'>('scanning')
   const [isAgentPaused, setIsAgentPaused] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
   const router = useRouter()
 
-  // Fetch data on component mount
+  // Get current user on component mount
   useEffect(() => {
-    fetchDashboardData()
+    const getCurrentUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user?.id) {
+        setUserId(session.user.id)
+        fetchDashboardData(session.user.id)
+      }
+    }
+    getCurrentUser()
     
     // Set up 15-minute status cycle
     const statusInterval = setInterval(() => {
@@ -63,7 +71,7 @@ export default function Dashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           action: newStatus ? 'pause' : 'resume',
-          user_id: 'current_user' // TODO: Replace with actual user ID
+          user_id: userId || 'anonymous'
         })
       })
       
@@ -78,9 +86,24 @@ export default function Dashboard() {
     }
   }
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (currentUserId: string) => {
     try {
-      // Fetch top Major Alpha signals (score > 85)
+      // First, trigger signal processing for this user with their preferences
+      console.log('🚀 Triggering signal processing for user:', currentUserId)
+      const scoutResponse = await fetch('/api/scout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: currentUserId })
+      })
+
+      if (scoutResponse.ok) {
+        const scoutResult = await scoutResponse.json()
+        console.log('✅ Signal processing completed:', scoutResult)
+      } else {
+        console.error('❌ Signal processing failed:', await scoutResponse.text())
+      }
+
+      // Fetch top Major Alpha signals (score > 85) for this user
       const { data: topSignals, error: signalsError } = await supabase
         .from('signals')
         .select('*')
@@ -399,8 +422,26 @@ export default function Dashboard() {
             </div>
           </AnimateOnScroll>
 
-          {/* View All Intelligence Button */}
+          {/* Launch Agent Button */}
           <AnimateOnScroll delay={0.6}>
+            <div className="text-center px-4 sm:px-0 mb-6 sm:mb-8">
+              <Button 
+                size="lg"
+                onClick={() => userId && fetchDashboardData(userId)}
+                disabled={!userId || loading}
+                className="h-12 sm:h-14 px-6 sm:px-8 bg-gradient-to-r from-amber-400 to-yellow-600 hover:from-amber-500 hover:to-yellow-700 text-black font-bold text-base sm:text-lg rounded-xl sm:rounded-2xl shadow-lg shadow-amber-500/25 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Zap className="w-4 h-4 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
+                {loading ? 'Processing...' : 'Launch Agent'}
+              </Button>
+              <p className="text-gray-500 text-xs sm:text-sm mt-3 sm:mt-4">
+                Generate personalized signals based on your preferences
+              </p>
+            </div>
+          </AnimateOnScroll>
+
+          {/* View All Intelligence Button */}
+          <AnimateOnScroll delay={0.7}>
             <div className="text-center px-4 sm:px-0">
               <Button 
                 size="lg"
