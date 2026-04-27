@@ -45,8 +45,27 @@ export default function Dashboard() {
     const getCurrentUser = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user?.id) {
+        console.log('🔐 Dashboard: Checking user preferences for', session.user.id)
+        
+        // Check if user has preferences
+        const { data: preferences, error: prefError } = await supabase
+          .from('user_preferences')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .single()
+        
+        if (prefError || !preferences) {
+          console.log('📝 Dashboard: No preferences found, redirecting to setup')
+          router.push('/dashboard/setup')
+          return
+        }
+        
+        console.log('✅ Dashboard: User has preferences, loading dashboard')
         setUserId(session.user.id)
         fetchDashboardData(session.user.id)
+      } else {
+        console.log('❌ Dashboard: No user session, redirecting to login')
+        router.push('/login')
       }
     }
     getCurrentUser()

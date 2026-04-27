@@ -64,10 +64,24 @@ export default function SetupWizard() {
         if (session?.user?.id) {
           console.log('✅ User authenticated:', session.user.id)
           setUserId(session.user.id)
+          
+          // Check if user already has preferences
+          const { data: preferences, error: prefError } = await supabase
+            .from('user_preferences')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .single()
+          
+          if (!prefError && preferences) {
+            console.log('📋 User already has preferences, redirecting to dashboard')
+            router.push('/dashboard')
+          } else {
+            console.log('📝 User needs to set up preferences')
+          }
         } else {
           console.log('❌ No user session found')
           // Redirect to login if no session
-          router.push('/auth/signin')
+          router.push('/login')
         }
       } catch (error) {
         console.error('❌ Auth check failed:', error)
