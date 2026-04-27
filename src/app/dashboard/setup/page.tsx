@@ -53,9 +53,24 @@ export default function SetupWizard() {
 
   useEffect(() => {
     const getCurrentUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user?.id) {
-        setUserId(session.user.id)
+      console.log('🔐 Checking user authentication...')
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession()
+        if (error) {
+          console.error('❌ Auth session error:', error)
+          return
+        }
+        
+        if (session?.user?.id) {
+          console.log('✅ User authenticated:', session.user.id)
+          setUserId(session.user.id)
+        } else {
+          console.log('❌ No user session found')
+          // Redirect to login if no session
+          router.push('/auth/signin')
+        }
+      } catch (error) {
+        console.error('❌ Auth check failed:', error)
       }
     }
     getCurrentUser()
@@ -95,32 +110,52 @@ export default function SetupWizard() {
 
   
   const handleSavePreferences = async () => {
+    console.log('🔍 Continue button clicked')
+    console.log('📊 Validation check:', {
+      selectedIndustries: selectedIndustries.length,
+      selectedRegions: selectedRegions.length,
+      userId: userId ? 'present' : 'missing'
+    })
+
     if (selectedIndustries.length === 0 || selectedRegions.length === 0 || !userId) {
+      console.log('❌ Validation failed - button should be disabled')
+      if (selectedIndustries.length === 0) console.log('  - No industries selected')
+      if (selectedRegions.length === 0) console.log('  - No regions selected')
+      if (!userId) console.log('  - User not authenticated')
       return
     }
 
+    console.log('✅ Validation passed, starting save process')
     setIsSaving(true)
 
     try {
-      const { error } = await supabase
+      const preferencesData = {
+        user_id: userId,
+        target_industries: selectedIndustries,
+        target_regions: selectedRegions,
+        min_alpha_threshold: alphaThreshold[0],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+
+      console.log('💾 Saving preferences:', preferencesData)
+
+      const { data, error } = await supabase
         .from('user_preferences')
-        .upsert({
-          user_id: userId,
-          target_industries: selectedIndustries,
-          target_regions: selectedRegions,
-          min_alpha_threshold: alphaThreshold[0],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
+        .upsert(preferencesData)
+        .select()
 
       if (error) {
-        console.error('Error saving preferences:', error)
+        console.error('❌ Error saving preferences:', error)
+        alert(`Error saving preferences: ${error.message}`)
       } else {
-        // Navigate to dashboard immediately after successful save
+        console.log('✅ Preferences saved successfully:', data)
+        console.log('🚀 Navigating to dashboard')
         router.push('/dashboard')
       }
     } catch (error) {
-      console.error('Error:', error)
+      console.error('❌ Unexpected error:', error)
+      alert('Unexpected error occurred. Please try again.')
     } finally {
       setIsSaving(false)
     }
@@ -345,17 +380,44 @@ export default function SetupWizard() {
 
         {/* Action Button */}
         <div className="text-center mt-8 sm:mt-12">
+          {/* Debug Info - Remove in production */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mb-4 p-3 bg-gray-800 rounded-lg text-xs text-left">
+              <div className="text-gray-400">Debug Info:</div>
+              <div>User ID: {userId ? '✅ Present' : '❌ Missing'}</div>
+              <div>Industries: {selectedIndustries.length} selected</div>
+              <div>Regions: {selectedRegions.length} selected</div>
+              <div>Button Disabled: {selectedIndustries.length === 0 || selectedRegions.length === 0 || !userId ? '✅ Yes' : '❌ No'}</div>
+            </div>
+          )}
+          
           <Button 
             size="lg"
             onClick={handleSavePreferences}
             disabled={selectedIndustries.length === 0 || selectedRegions.length === 0 || isSaving}
             className="h-12 sm:h-14 px-6 sm:px-8 bg-gradient-to-r from-[#1a5ee9] to-[#3d8bfd] hover:from-[#1554d6] hover:to-[#2d7aed] text-white font-semibold rounded-xl shadow-lg shadow-[#1a5ee9]/25 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
           >
-            {isSaving ? 'Saving...' : 'Continue'}
-            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
+            {isSaving ? (
+              <>
+                <div className="w-4 h-4 sm:w-5 sm:h-5 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Saving...
+              </>
+            ) : (
+              <>
+                Continue
+                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
+              </>
+            )}
           </Button>
           <p className="text-gray-500 text-xs sm:text-sm mt-3 sm:mt-4">
-            Select at least one industry and region to continue
+            {selectedIndustries.length === 0 
+              ? 'Select at least one industry to continue'
+              : selectedRegions.length === 0 
+                ? 'Select at least one region to continue'
+                : !userId 
+                  ? 'Please wait... authenticating'
+                  : 'Ready to continue'
+            }
           </p>
         </div>
       </div>
