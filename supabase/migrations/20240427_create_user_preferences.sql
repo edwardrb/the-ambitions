@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS user_preferences (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   target_industries TEXT[] NOT NULL DEFAULT '{}',
-  target_regions TEXT[] NOT NULL DEFAULT '{}',
+  target_locations TEXT[] NOT NULL DEFAULT '{}',
   min_alpha_threshold INTEGER NOT NULL DEFAULT 75,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS user_preferences (
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_user_preferences_user_id ON user_preferences(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_preferences_industries ON user_preferences USING GIN(target_industries);
-CREATE INDEX IF NOT EXISTS idx_user_preferences_regions ON user_preferences USING GIN(target_regions);
+CREATE INDEX IF NOT EXISTS idx_user_preferences_locations ON user_preferences USING GIN(target_locations);
 
 -- Create trigger to automatically update updated_at
 CREATE OR REPLACE FUNCTION update_updated_at_column()

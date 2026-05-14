@@ -2,12 +2,15 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/utils/supabase'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import AnimateOnScroll from "@/components/AnimateOnScroll"
+import SignalDisplay from "@/components/dashboard/SignalDisplay"
+import MarketSentiment from "@/components/dashboard/MarketSentiment"
+import SystemStatus from "@/components/dashboard/SystemStatus"
 import { 
   Zap, 
   TrendingUp, 
@@ -22,11 +25,6 @@ import {
   Calendar
 } from "lucide-react"
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
-
 export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [signals, setSignals] = useState<any[]>([])
@@ -35,6 +33,7 @@ export default function Dashboard() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [batchSummaries, setBatchSummaries] = useState<any[]>([])
+  const [allSignalsData, setAllSignalsData] = useState<any[]>([])
   const [systemStatus, setSystemStatus] = useState<'scanning' | 'reporting'>('scanning')
   const [isAgentPaused, setIsAgentPaused] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
@@ -47,12 +46,14 @@ export default function Dashboard() {
       if (session?.user?.id) {
         console.log('🔐 Dashboard: Checking user preferences for', session.user.id)
         
-        // Check if user has preferences
+        // Check if user has preferences (handle multiple records)
         const { data: preferences, error: prefError } = await supabase
           .from('user_preferences')
           .select('*')
           .eq('user_id', session.user.id)
-          .single()
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
         
         if (prefError || !preferences) {
           console.log('📝 Dashboard: No preferences found, redirecting to setup')
@@ -122,30 +123,55 @@ export default function Dashboard() {
         console.error('❌ Signal processing failed:', await scoutResponse.text())
       }
 
-      // Fetch top Major Alpha signals (score > 85) for this user
-      const { data: topSignals, error: signalsError } = await supabase
-        .from('signals')
-        .select('*')
-        .gte('confidence_score', 85)
-        .order('confidence_score', { ascending: false })
-        .limit(3)
-
-      if (signalsError) {
-        console.error('Error fetching signals:', signalsError)
-      } else {
-        setSignals(topSignals || [])
+      // Fetch insights from the new insights API
+      console.log('🔍 Fetching insights from /api/insights...')
+      const insightsResponse = await fetch('/api/insights')
+      
+      if (!insightsResponse.ok) {
+        console.error('❌ Failed to fetch insights:', await insightsResponse.text())
+        setSignals([])
+        return
       }
+      
+      const insightsData = await insightsResponse.json()
+      console.log('✅ Insights fetched:', insightsData)
+      
+      // Transform insights data to match expected signal format
+      const transformedSignals = insightsData.insights.map((insight: any) => ({
+        id: insight.id,
+        title: insight.title,
+        description: insight.description,
+        url: insight.url,
+        suggested_contact: insight.suggested_contact,
+        outreach_draft: insight.outreach_draft,
+        confidence_score: insight.confidence_score,
+        score_reasoning: insight.why_it_matters,
+        created_at: insight.created_at,
+        trigger_type: 'global',
+        source: 'Singapore Fintech Radar'
+      }))
+      
+      console.log('📊 Transformed signals:', transformedSignals.length)
+      setSignals(transformedSignals)
+    } catch (error) {
+      console.error('❌ Error in fetchDashboardData:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
-      // Fetch market sentiment
+  const fetchMarketSentiment = async () => {
+    try {
       const { data: sentiment, error: sentimentError } = await supabase
         .from('market_sentiment')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle() // Use maybeSingle instead of single to handle no data
 
       if (sentimentError) {
-        console.error('Error fetching sentiment:', sentimentError)
+        console.log('No market sentiment data found (expected for new users)')
+        setMarketSentiment(null)
       } else {
         setMarketSentiment(sentiment)
       }
@@ -168,17 +194,17 @@ export default function Dashboard() {
 
   const fetchAllSignals = async (page: number = 1) => {
     try {
-      const offset = (page - 1) * 100
+      // Remove pagination limit to fetch all signals
       const { data, error } = await supabase
         .from('signals')
         .select('*')
         .order('confidence_score', { ascending: false })
-        .range(offset, offset + 99)
 
       if (error) {
         console.error('Error fetching all signals:', error)
         return []
       }
+      console.log(`🔍 Debug: Fetched ${data?.length || 0} signals from database`)
       return data || []
     } catch (error) {
       console.error('Error:', error)
@@ -194,39 +220,33 @@ export default function Dashboard() {
         .order('created_at', { ascending: false })
 
       if (error) {
-        console.error('Error fetching batch summaries:', error)
+        console.log('No batch summaries found (table may not exist yet)')
+        setBatchSummaries([])
       } else {
         setBatchSummaries(data || [])
       }
     } catch (error) {
-      console.error('Error:', error)
+      console.log('Batch summaries table not available yet')
+      setBatchSummaries([])
     }
   }
 
   const handleViewAllIntelligence = async () => {
-    setShowAllSignals(true)
-    await fetchBatchSummaries()
-  }
-
-  const getSentimentIcon = (sentiment: string) => {
-    switch (sentiment?.toLowerCase()) {
-      case 'bullish':
-        return <ArrowUp className="w-5 h-5 text-green-400" />
-      case 'bearish':
-        return <ArrowDown className="w-5 h-5 text-red-400" />
-      default:
-        return <Minus className="w-5 h-5 text-yellow-400" />
-    }
-  }
-
-  const getSentimentColor = (sentiment: string) => {
-    switch (sentiment?.toLowerCase()) {
-      case 'bullish':
-        return 'text-green-400 bg-green-400/10 border-green-400/30'
-      case 'bearish':
-        return 'text-red-400 bg-red-400/10 border-red-400/30'
-      default:
-        return 'text-yellow-400 bg-yellow-400/10 border-yellow-400/30'
+    try {
+      console.log('🔍 Starting View All Intelligence process...')
+      
+      // Fetch all signals (duplicates are now prevented at the source)
+      console.log('📡 Fetching all signals for View All Intelligence...')
+      const allSignals = await fetchAllSignals()
+      
+      console.log(`📊 Total signals fetched: ${allSignals.length}`)
+      
+      // Set the signals data and show the dialog
+      setAllSignalsData(allSignals)
+      setShowAllSignals(true)
+      
+    } catch (error) {
+      console.error('❌ Error in View All Intelligence:', error)
     }
   }
 
@@ -268,181 +288,72 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="pt-24 pb-20">
         <div className="max-w-7xl mx-auto px-6">
-          {/* System Status Section */}
-          <AnimateOnScroll delay={0.05}>
-            <div className="mb-6 sm:mb-8 px-4 sm:px-0">
-              <div className="backdrop-blur-xl bg-white/5 border-white/10 rounded-xl sm:rounded-2xl p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="relative">
-                      <div className={`w-3 h-3 rounded-full ${
-                        systemStatus === 'scanning' 
-                          ? 'bg-green-500 animate-pulse shadow-lg shadow-green-500/50' 
-                          : 'bg-gradient-to-r from-amber-500 to-orange-500 animate-pulse shadow-lg shadow-amber-500/50'
-                      }`}></div>
-                      <div className={`absolute inset-0 w-3 h-3 rounded-full ${
-                        systemStatus === 'scanning' 
-                          ? 'bg-green-500 animate-ping' 
-                          : 'bg-amber-500 animate-ping'
-                      }`}></div>
-                    </div>
-                    <div>
-                      <h3 className="text-base sm:text-lg font-semibold text-white">
-                        <span className="block sm:inline">System Status:</span> <span className={
-                          systemStatus === 'scanning' ? 'text-green-400' : 'text-amber-300'
-                        }>{systemStatus === 'scanning' ? 'Scanning...' : 'Reporting'}</span>
-                      </h3>
-                      <p className="text-gray-400 text-xs sm:text-sm">
-                        {systemStatus === 'scanning' 
-                          ? 'Actively analyzing market signals' 
-                          : 'Generating investment intelligence'
-                        }
-                      </p>
-                    </div>
+          {/* Singapore Fintech Career Signal Radar Header */}
+          <div className="mb-12 sm:mb-16">
+            <div className="backdrop-blur-xl bg-gradient-to-r from-blue-600/20 to-purple-700/20 border border-blue-500/30 rounded-xl sm:rounded-2xl p-6 sm:p-8">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3 sm:space-x-4">
+                  <div className="relative">
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 bg-blue-500 rounded-full animate-pulse"></div>
+                    <div className="absolute inset-0 w-3 h-3 sm:w-4 sm:h-4 bg-blue-500 rounded-full animate-ping"></div>
                   </div>
-                  
-                  {/* Pause Agent Button */}
-                  <Button 
-                    onClick={handlePauseAgent}
-                    className={`h-10 sm:h-12 px-4 sm:px-6 font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 text-sm sm:text-base ${
-                      isAgentPaused 
-                        ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg shadow-green-500/25' 
-                        : 'bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white shadow-lg shadow-red-500/25'
-                    }`}
-                  >
-                    {isAgentPaused ? (
-                      <>
-                        <div className="w-3 h-3 sm:w-4 sm:h-4 mr-2 bg-white rounded-sm"></div>
-                        <span className="hidden sm:inline">Resume Agent</span>
-                        <span className="sm:hidden">Resume</span>
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-3 h-3 sm:w-4 sm:h-4 mr-2 bg-white rounded-sm"></div>
-                        <span className="hidden sm:inline">Pause Agent</span>
-                        <span className="sm:hidden">Pause</span>
-                      </>
-                    )}
-                  </Button>
+                  <div>
+                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
+                      Live: Singapore Fintech Career Signal Radar
+                    </h1>
+                    <p className="text-gray-300 text-sm sm:text-base mt-1">
+                      Career opportunities from Singapore fintech ecosystem
+                    </p>
+                  </div>
+                </div>
+                <div className="hidden sm:flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                  <span className="text-green-400 text-sm font-medium">ACTIVE</span>
                 </div>
               </div>
             </div>
-          </AnimateOnScroll>
+          </div>
+
+          {/* System Status Section */}
+          <SystemStatus
+            systemStatus={systemStatus}
+            isAgentPaused={isAgentPaused}
+            onPauseAgent={handlePauseAgent}
+          />
 
           {/* Hero Section - Top 3 Major Alpha */}
           <div className="mb-12 sm:mb-16">
-            <AnimateOnScroll delay={0.1}>
-              <div className="text-center mb-8 sm:mb-12 px-4 sm:px-0">
-                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4">
-                  <span className="bg-gradient-to-r from-white via-white to-gray-400 bg-clip-text text-transparent">
-                    Major Alpha Intelligence
-                  </span>
-                </h1>
-                <p className="text-gray-400 text-sm sm:text-lg">
-                  Your highest conviction investment signals
-                </p>
-              </div>
-            </AnimateOnScroll>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 px-4 sm:px-0">
-              {signals.slice(0, 3).map((signal, index) => (
-                <AnimateOnScroll key={signal.id} delay={0.2 + index * 0.1}>
-                  <Card className="backdrop-blur-xl bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent border-amber-400/20 rounded-2xl sm:rounded-3xl overflow-hidden group hover:border-amber-400/40 transition-all duration-500 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40">
-                    <CardContent className="p-4 sm:p-6 lg:p-8">
-                      <div className="flex items-center justify-between mb-4 sm:mb-6">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/25">
-                          <Target className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                        </div>
-                        <div className="flex flex-col items-end">
-                          <div className="text-2xl sm:text-3xl font-bold text-amber-300">{signal.confidence_score}%</div>
-                          <Badge className="bg-gradient-to-r from-amber-500/40 to-orange-500/40 text-amber-200 border-amber-400/50 text-xs">
-                            Major Alpha
-                          </Badge>
-                        </div>
-                      </div>
-
-                      <h3 className="text-lg sm:text-xl font-bold text-white mb-2 sm:mb-3 line-clamp-2">{signal.title}</h3>
-                      <p className="text-gray-400 mb-4 sm:mb-6 leading-relaxed text-sm sm:text-base line-clamp-3">{signal.description}</p>
-
-                      {/* Suggested Action */}
-                      <div className="bg-gradient-to-r from-blue-500/10 to-[#1a5ee9]/10 border border-blue-400/30 rounded-xl p-3 sm:p-4 mb-4 sm:mb-6">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400" />
-                          <span className="text-blue-300 font-semibold text-xs sm:text-sm">Suggested Action</span>
-                        </div>
-                        <p className="text-white font-medium text-sm sm:text-base">{signal.suggested_action}</p>
-                      </div>
-
-                      {/* Score Reasoning */}
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                        <div className="flex items-center space-x-2">
-                          <Info className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
-                          <span className="text-gray-400 text-xs">Source: {signal.source}</span>
-                        </div>
-                        <span className="text-gray-500 text-xs">{new Date(signal.created_at).toLocaleDateString()}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </AnimateOnScroll>
-              ))}
-            </div>
+            <SignalDisplay signals={signals} />
           </div>
 
-          {/* Economic Pulse Section */}
-          <AnimateOnScroll delay={0.5}>
-            <div className="mb-12 sm:mb-16">
-              <div className="flex items-center space-x-2 sm:space-x-3 mb-6 sm:mb-8 px-4 sm:px-0">
-                <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-[#1a5ee9]" />
-                <h2 className="text-2xl sm:text-3xl font-bold text-white">Economic Pulse</h2>
+          {/* Singapore Fintech Radar Banner - COMMENTED OUT */}
+          {/* <div className="mb-12 sm:mb-16">
+            <div className="backdrop-blur-xl bg-gradient-to-r from-red-600/20 to-red-700/20 border border-red-500/30 rounded-xl sm:rounded-2xl p-6 sm:p-8">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3 sm:space-x-4">
+                  <div className="relative">
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 bg-red-500 rounded-full animate-pulse"></div>
+                    <div className="absolute inset-0 w-3 h-3 sm:w-4 sm:h-4 bg-red-500 rounded-full animate-ping"></div>
+                  </div>
+                  <div>
+                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
+                      Live: Singapore Fintech Signal Radar
+                    </h1>
+                    <p className="text-gray-300 text-sm sm:text-base mt-1">
+                      Real-time intelligence from Singapore fintech ecosystem
+                    </p>
+                  </div>
+                </div>
+                <div className="hidden sm:flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                  <span className="text-green-400 text-sm font-medium">ACTIVE</span>
+                </div>
               </div>
-
-              {marketSentiment ? (
-                <Card className="backdrop-blur-xl bg-gradient-to-br from-[#1a5ee9]/10 to-transparent border-[#1a5ee9]/20 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 mx-4 sm:mx-0">
-                  <CardContent className="p-0">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                      <div>
-                        <h3 className="text-xl sm:text-2xl font-bold text-white mb-1 sm:mb-2">24h Market Sentiment</h3>
-                        <p className="text-gray-400 text-sm sm:text-base">Real-time market analysis and sentiment indicators</p>
-                      </div>
-                      <div className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-xl border ${getSentimentColor(marketSentiment.sentiment)}`}>
-                        {getSentimentIcon(marketSentiment.sentiment)}
-                        <span className="font-semibold capitalize text-sm sm:text-base">{marketSentiment.sentiment}</span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-3 sm:gap-6">
-                      <div className="text-center">
-                        <div className="text-xl sm:text-3xl font-bold text-[#1a5ee9] mb-1 sm:mb-2">{marketSentiment.confidence || 0}%</div>
-                        <div className="text-gray-400 text-xs sm:text-sm">Confidence</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-xl sm:text-3xl font-bold text-green-400 mb-1 sm:mb-2">{marketSentiment.positive_signals || 0}</div>
-                        <div className="text-gray-400 text-xs sm:text-sm">Positive</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-xl sm:text-3xl font-bold text-red-400 mb-1 sm:mb-2">{marketSentiment.negative_signals || 0}</div>
-                        <div className="text-gray-400 text-xs sm:text-sm">Negative</div>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-white/10">
-                      <p className="text-gray-300 leading-relaxed text-sm sm:text-base">{marketSentiment.narrative}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card className="backdrop-blur-xl bg-white/5 border-white/10 rounded-2xl sm:rounded-3xl p-6 sm:p-8 mx-4 sm:mx-0">
-                  <CardContent className="p-0 text-center">
-                    <TrendingUp className="w-10 h-10 sm:w-12 sm:h-12 text-gray-600 mx-auto mb-4" />
-                    <p className="text-gray-400 text-sm sm:text-base">Market sentiment data loading...</p>
-                  </CardContent>
-                </Card>
-              )}
             </div>
-          </AnimateOnScroll>
+          </div> */}
 
-          {/* Launch Agent Button */}
-          <AnimateOnScroll delay={0.6}>
+          {/* Launch Agent Button - DISABLED for Singapore Fintech MVP */}
+          {/* <AnimateOnScroll delay={0.6}>
             <div className="text-center px-4 sm:px-0 mb-6 sm:mb-8">
               <Button 
                 size="lg"
@@ -457,7 +368,7 @@ export default function Dashboard() {
                 Generate personalized signals based on your preferences
               </p>
             </div>
-          </AnimateOnScroll>
+          </AnimateOnScroll> */}
 
           {/* View All Intelligence Button */}
           <AnimateOnScroll delay={0.7}>
@@ -476,17 +387,45 @@ export default function Dashboard() {
               </p>
             </div>
           </AnimateOnScroll>
+
+          {/* Update Preferences Button */}
+          <AnimateOnScroll delay={0.8}>
+            <div className="text-center px-4 sm:px-0">
+              <Button 
+                size="lg"
+                onClick={() => {
+                console.log('🔍 Dashboard Update Preferences button clicked')
+                console.log('📊 Navigating to: /dashboard/setup?update=true')
+                router.push('/dashboard/setup?update=true')
+              }}
+                className="h-10 sm:h-12 px-4 sm:px-6 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-semibold text-sm sm:text-base rounded-lg sm:rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-300 transform hover:scale-105"
+              >
+                <Target className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                <span className="hidden sm:inline">Update Preferences</span>
+                <span className="sm:hidden">Settings</span>
+              </Button>
+              <p className="text-gray-500 text-xs sm:text-sm mt-2 sm:mt-3">
+                Modify your target industries, locations, and thresholds
+              </p>
+            </div>
+          </AnimateOnScroll>
         </div>
       </main>
 
       {/* Full Screen Intelligence Dialog */}
       <Dialog open={showAllSignals} onOpenChange={setShowAllSignals}>
-        <DialogContent className="max-w-7xl w-[95vw] sm:w-full h-[85vh] sm:h-[90vh] bg-black/95 backdrop-blur-xl border-white/10 text-white rounded-lg sm:rounded-xl">
+        <DialogContent 
+          className="max-w-7xl w-[95vw] sm:w-full h-[85vh] sm:h-[90vh] bg-black/95 backdrop-blur-xl border-white/10 text-white rounded-lg sm:rounded-xl"
+          aria-describedby="intelligence-dialog-description"
+        >
           <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6">
             <DialogTitle className="text-lg sm:text-xl md:text-2xl font-bold text-white flex items-center space-x-2 sm:space-x-3">
               <Database className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-[#1a5ee9]" />
               <span className="truncate">All Intelligence Signals</span>
             </DialogTitle>
+            <p id="intelligence-dialog-description" className="text-sm text-gray-300 mt-2">
+              Browse and filter all market intelligence signals with detailed scoring breakdowns and confidence levels
+            </p>
           </DialogHeader>
 
           <div className="h-full overflow-hidden flex flex-col px-4 sm:px-6 pb-4 sm:pb-6">
@@ -528,26 +467,80 @@ export default function Dashboard() {
                 <table className="w-full text-xs sm:text-sm">
                   <thead className="sticky top-0 bg-black/90 backdrop-blur-xl border-b border-white/10">
                     <tr>
-                      <th className="text-left p-2 sm:p-4 text-gray-400 font-semibold">Signal</th>
+                      <th className="text-left p-2 sm:p-4 text-gray-400 font-semibold">Created_at</th>
+                      <th className="text-left p-2 sm:p-4 text-gray-400 font-semibold">Title</th>
+                      <th className="text-left p-2 sm:p-4 text-gray-400 font-semibold hidden lg:table-cell">Description</th>
+                      <th className="text-left p-2 sm:p-4 text-gray-400 font-semibold">Category</th>
+                      <th className="text-left p-2 sm:p-4 text-gray-400 font-semibold hidden sm:table-cell">Source</th>
+                      <th className="text-left p-2 sm:p-4 text-gray-400 font-semibold hidden md:table-cell">URL</th>
                       <th className="text-left p-2 sm:p-4 text-gray-400 font-semibold">Score</th>
+                      <th className="text-left p-2 sm:p-4 text-gray-400 font-semibold hidden lg:table-cell">Reasoning</th>
                       <th className="text-left p-2 sm:p-4 text-gray-400 font-semibold hidden sm:table-cell">Action</th>
-                      <th className="text-left p-2 sm:p-4 text-gray-400 font-semibold hidden md:table-cell">Source</th>
-                      <th className="text-left p-2 sm:p-4 text-gray-400 font-semibold">Date</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {/* This would be populated with actual signals data */}
-                    <tr className="border-b border-white/5">
-                      <td className="p-2 sm:p-4 text-white truncate max-w-[150px] sm:max-w-none">Sample Signal Title</td>
-                      <td className="p-2 sm:p-4">
-                        <Badge className="bg-[#1a5ee9]/20 text-[#1a5ee9] border-[#1a5ee9]/30 text-xs">
-                          85%
-                        </Badge>
-                      </td>
-                      <td className="p-2 sm:p-4 text-gray-300 hidden sm:table-cell">Monitor</td>
-                      <td className="p-2 sm:p-4 text-gray-400 hidden md:table-cell">reuters.com</td>
-                      <td className="p-2 sm:p-4 text-gray-500 text-xs sm:text-sm">2024-01-01</td>
-                    </tr>
+                    {allSignalsData.map((signal, index) => (
+                      <tr key={signal.id || index} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                        <td className="p-2 sm:p-4 text-gray-300 text-xs sm:text-sm">
+                          {signal.created_at ? new Date(signal.created_at).toLocaleDateString() : 'N/A'}
+                        </td>
+                        <td className="p-2 sm:p-4 text-white truncate max-w-[200px] sm:max-w-none" title={signal.title}>
+                          {signal.title || 'N/A'}
+                        </td>
+                        <td className="p-2 sm:p-4 text-gray-300 hidden lg:table-cell truncate max-w-[300px]" title={signal.description}>
+                          {signal.description ? signal.description.substring(0, 100) + (signal.description.length > 100 ? '...' : '') : 'N/A'}
+                        </td>
+                        <td className="p-2 sm:p-4">
+                          <Badge className="bg-purple-500/20 text-purple-300 border-purple-400/30 text-xs">
+                            {signal.category || signal.trigger_type || 'N/A'}
+                          </Badge>
+                        </td>
+                        <td className="p-2 sm:p-4 text-gray-400 hidden sm:table-cell truncate max-w-[120px]" title={signal.source}>
+                          {signal.source || 'N/A'}
+                        </td>
+                        <td className="p-2 sm:p-4 hidden md:table-cell">
+                          {signal.url ? (
+                            <a 
+                              href={signal.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-400 hover:text-blue-300 underline text-xs truncate max-w-[150px] block"
+                              title={signal.url}
+                            >
+                              {signal.url.length > 30 ? signal.url.substring(0, 30) + '...' : signal.url}
+                            </a>
+                          ) : (
+                            <span className="text-gray-500 text-xs">N/A</span>
+                          )}
+                        </td>
+                        <td className="p-2 sm:p-4">
+                          <Badge className={`${
+                            signal.confidence_score >= 70 ? 'bg-green-500/20 text-green-300 border-green-400/30' :
+                            signal.confidence_score >= 50 ? 'bg-yellow-500/20 text-yellow-300 border-yellow-400/30' :
+                            'bg-red-500/20 text-red-300 border-red-400/30'
+                          } text-xs`}>
+                            {signal.confidence_score || 0}%
+                          </Badge>
+                        </td>
+                        <td className="p-2 sm:p-4 text-gray-300 hidden lg:table-cell truncate max-w-[200px]" title={signal.score_reasoning}>
+                          {signal.score_reasoning ? signal.score_reasoning.substring(0, 80) + (signal.score_reasoning.length > 80 ? '...' : '') : 'N/A'}
+                        </td>
+                        <td className="p-2 sm:p-4 text-gray-300 hidden sm:table-cell">
+                          <Badge className="bg-blue-500/20 text-blue-300 border-blue-400/30 text-xs">
+                            {signal.suggested_action || 'Monitor'}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                    {allSignalsData.length === 0 && (
+                      <tr>
+                        <td colSpan={9} className="p-8 text-center text-gray-400">
+                          <Database className="w-12 h-12 mx-auto mb-4 text-gray-500" />
+                          <p className="text-lg font-semibold mb-2">No signals found</p>
+                          <p className="text-sm">Launch the agent to start generating intelligence signals</p>
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
